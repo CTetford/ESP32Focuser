@@ -2,27 +2,12 @@
 //#include "LM335.h"
 #include "Moonlite.h"
 #include "StepperControl.h"
-#include <ESP32Encoder.h>
+//#include <ESP32Encoder.h>
 
 //#include <U8x8lib.h>
 //#include <U8g2lib.h>
 
-const int directionPin = 32;
-const int stepPin      = 33;
-const int sleepPin     = 25;
-const int resetPin     = 26;
-const int stepMode3    = 27;
-const int stepMode2    = 14;
-const int stepMode1    = 12;
-const int enablePin    = 13;
-
-const int encoderPin1  = 2;
-const int encoderPin2  = 15;
-
-#define RXD2 16
-#define TXD2 17
-
-const int encoderMotorstepsRelation = 5;
+#include "../Configuration.hpp"
 
 //const int temperatureSensorPin = 3;
 
@@ -30,16 +15,9 @@ unsigned long timestamp;
 unsigned long displayTimestamp;
 
 //LM335 TemperatureSensor(temperatureSensorPin);
-StepperControl Motor(stepPin,
-                           directionPin,
-                           stepMode1,
-                           stepMode2,
-                           stepMode3,
-                           enablePin,
-                           sleepPin,
-                           resetPin);
+StepperControl Motor(stepPin, directionPin, enablePin);
 Moonlite SerialProtocol;
-ESP32Encoder encoder;
+// ESP32Encoder encoder;
 
 // Declaration of the display
 //U8G2_SSD1306_128X64_NONAME_1_HW_I2C Display(U8G2_R0);
@@ -79,19 +57,19 @@ void processCommand()
       // Return the current motor speed
       switch (Motor.getSpeed())
       {
-        case 500:
+        case Speed1:
           SerialProtocol.setAnswer(2, (long)0x20);
           break;
-        case 1000:
+        case Speed2:
           SerialProtocol.setAnswer(2, (long)0x10);
           break;
-        case 3000:
+        case Speed3:
           SerialProtocol.setAnswer(2, (long)0x8);
           break;
-        case 5000:
+        case Speed4:
           SerialProtocol.setAnswer(2, (long)0x4);
           break;
-        case 7000:
+        case Speed5:
           SerialProtocol.setAnswer(2, (long)0x2);
           break;
         default:
@@ -101,7 +79,7 @@ void processCommand()
       break;
     case ML_GH:
       // Return the current stepping mode (half or full step)
-      SerialProtocol.setAnswer(2, (long)(Motor.getStepMode() == SC_32TH_STEP ? 0xFF : 0x00));
+      SerialProtocol.setAnswer(2, (long)(Motor.getStepMode() == HALF_STEP ? 0xFF : 0x00));
       break;
     case ML_GI:
       // get if the motor is moving or not
@@ -133,19 +111,19 @@ void processCommand()
       switch (SerialProtocol.getCommand().parameter)
       {
         case 0x02:
-          Motor.setSpeed(7000);
+          Motor.setSpeed(Speed5);
           break;
         case 0x04:
-          Motor.setSpeed(5000);
+          Motor.setSpeed(Speed4);
           break;
         case 0x08:
-          Motor.setSpeed(3000);
+          Motor.setSpeed(Speed3);
           break;
         case 0x10:
-          Motor.setSpeed(1000);
+          Motor.setSpeed(Speed2);
           break;
         case 0x20:
-          Motor.setSpeed(500);
+          Motor.setSpeed(Speed1);
           break;
         default:
           break;
@@ -153,7 +131,7 @@ void processCommand()
       break;
     case ML_SF:
       // Set the stepping mode to full step
-      Motor.setStepMode(SC_16TH_STEP);
+      Motor.setStepMode(FULL_STEP);
       if (Motor.getSpeed() >= 6000)
       {
         Motor.setSpeed(6000);
@@ -161,16 +139,16 @@ void processCommand()
       break;
     case ML_SH:
       // Set the stepping mode to half step
-      Motor.setStepMode(SC_32TH_STEP);
+      Motor.setStepMode(HALF_STEP);
       break;
     case ML_SN:
       // Set the target position
-      encoder.setCount(SerialProtocol.getCommand().parameter * encoderMotorstepsRelation);
+      //encoder.setCount(SerialProtocol.getCommand().parameter * encoderMotorstepsRelation);
       Motor.setTargetPosition(SerialProtocol.getCommand().parameter);
       break;
     case ML_SP:
       // Set the current motor position
-      encoder.setCount(SerialProtocol.getCommand().parameter * encoderMotorstepsRelation);
+      //encoder.setCount(SerialProtocol.getCommand().parameter * encoderMotorstepsRelation);
       Motor.setCurrentPosition(SerialProtocol.getCommand().parameter);
       break;
     case ML_PLUS:
@@ -190,6 +168,7 @@ void processCommand()
   }
 }
 
+/* 
 void SetupEncoder()
 {
   delay(1);
@@ -200,6 +179,7 @@ void SetupEncoder()
   // Attach pins for use as encoder pins
 	encoder.attachSingleEdge(encoderPin1, encoderPin2);
 }
+*/
 
 void setup()
 {
@@ -211,17 +191,22 @@ void setup()
   //Display.setContrast(0);
   //Display.setFont(u8g2_font_crox4hb_tr);
 
+  // Open serial port with TMC2209
+  Serial1.begin(115200, SERIAL_8N1, UART_TX, UART_RX);      
+
   // Set the motor speed to a valid value for Moonlite
+  Motor.initDriver(&Serial1, 0.11f, 0b00);
   Motor.setSpeed(7000);
-  Motor.setStepMode(SC_32TH_STEP);
+  Motor.setStepMode(HALF_STEP);
   Motor.setMoveMode(SC_MOVEMODE_SMOOTH);
 
   timestamp = millis();
   //displayTimestamp = millis();
 
-  SetupEncoder();
+  // SetupEncoder();
 }
 
+/* 
 void HandleHandController()
 {
   long targetPosition = Motor.getTargetPosition();
@@ -240,6 +225,7 @@ void HandleHandController()
     Motor.Manage();
   }
 }
+*/
 
 void loop()
 {
@@ -256,7 +242,7 @@ void loop()
   }
 
 
-  HandleHandController();
+  // HandleHandController();
 
   Motor.Manage();
   SerialProtocol.Manage();

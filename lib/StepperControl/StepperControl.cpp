@@ -3,7 +3,9 @@ StepperControl_A4988.h - - Driver for a Stepper Motor with controler A4988- Vers
 
 History:
 Version 1.0 - Author Jean-Philippe Bonnet
-   First release
+    First release
+Version 2.0 - Author Cameron Tetford
+    Changed stepmode control to be UART-based for TMC2209 drivers
 
 This file is part of the StepperControl_A4988 library.
 
@@ -23,42 +25,22 @@ along with StepperControl library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "StepperControl.h"
+#include "../../Configuration.hpp"
 
 //------------------------------------------------------------------------------------
 // Constructors:
-StepperControl::StepperControl(int stepPin,
-                                           int directionPin,
-                                           int stepModePin1,
-                                           int stepModePin2,
-                                           int stepModePin3,
-                                           int enablePin,
-                                           int sleepPin,
-                                           int resetPin)
+StepperControl::StepperControl(int stepPin, int directionPin, int enablePin)
 {
   this->stepPin = stepPin;
   this->directionPin = directionPin;
-  this->stepModePin1 = stepModePin1;
-  this->stepModePin2 = stepModePin2;
-  this->stepModePin3 = stepModePin3;
   this->enablePin = enablePin;
-  this->sleepPin = sleepPin;
-  this->resetPin = resetPin;
 
   pinMode(stepPin, OUTPUT);
   pinMode(directionPin, OUTPUT);
-  pinMode(stepModePin1, OUTPUT);
-  pinMode(stepModePin2, OUTPUT);
-  pinMode(stepModePin3, OUTPUT);
   pinMode(enablePin, OUTPUT);
-  pinMode(sleepPin, OUTPUT);
-  pinMode(resetPin, OUTPUT);
 
   digitalWrite(directionPin, LOW);
   digitalWrite(stepPin, LOW);
-
-  digitalWrite(sleepPin, HIGH);
-  digitalWrite(resetPin, HIGH);
-
   digitalWrite(enablePin, HIGH);
 
   this->direction = SC_CLOCKWISE;
@@ -68,7 +50,7 @@ StepperControl::StepperControl(int stepPin,
   this->targetPosition = 0;
   this->moveMode = SC_MOVEMODE_PER_STEP;
   this->acceleration = SC_DEFAULT_ACCEL;
-  this->speed = 0;
+  this->speed = Speed1;
   this->lastMovementTimestamp = 0;
   this->accelTimestamp = 0;
   this->targetSpeedReached = false;
@@ -78,7 +60,11 @@ StepperControl::StepperControl(int stepPin,
   this->temperatureCompensationIsEnabled = false;
   this->temperatureCompensationCoefficient = 0;
   this->currentTemperature = 0;
-  this->setStepMode(SC_8TH_STEP);
+}
+
+void StepperControl::initDriver(HardwareSerial *serial, float rsense, byte driveraddress)
+{
+  this->driver = new TMC2209Stepper(serial, rsense, driveraddress);
 }
 
 //------------------------------------------------------------------------------------
@@ -101,9 +87,7 @@ void StepperControl::setDirection(int direction)
 void StepperControl::setStepMode(int stepMode)
 {
   this->stepMode = stepMode;
-  digitalWrite(stepModePin1, this->stepMode & 0x04);
-  digitalWrite(stepModePin2, this->stepMode & 0x02);
-  digitalWrite(stepModePin3, this->stepMode & 0x01);
+  this->driver->microsteps(stepMode);
 }
 
 void StepperControl::setMoveMode(int moveMode)
@@ -113,21 +97,13 @@ void StepperControl::setMoveMode(int moveMode)
 
 void StepperControl::setSpeed(unsigned int speed)
 {
-  if (this->stepMode == SC_8TH_STEP && speed >= SC_MAX_SPEED_8TH_STEP)
+  if (this->stepMode == FULL_STEP && speed >= SC_MAX_SPEED_FULL_STEP)
   {
-    this->targetSpeed = SC_MAX_SPEED_8TH_STEP;
+    this->targetSpeed = SC_MAX_SPEED_FULL_STEP;
   }
-  else if (this->stepMode == SC_16TH_STEP && speed >= SC_MAX_SPEED_16TH_STEP)
+  else if (this->stepMode == HALF_STEP && speed >= SC_MAX_SPEED_FULL_STEP)
   {
-    this->targetSpeed = SC_MAX_SPEED_16TH_STEP;
-  }
-  else if (this->stepMode == SC_32TH_STEP && speed >= SC_MAX_SPEED_32TH_STEP)
-  {
-    this->targetSpeed = SC_MAX_SPEED_32TH_STEP;
-  }
-  else if (this->stepMode == SC_64TH_STEP && speed >= SC_MAX_SPEED_64TH_STEP)
-  {
-    this->targetSpeed = SC_MAX_SPEED_64TH_STEP;
+    this->targetSpeed = SC_MAX_SPEED_HALF_STEP;
   }
   else
   {

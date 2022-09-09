@@ -4,6 +4,8 @@ StepperControl_a4988.h - - Driver for a Stepper Motor with controler a4988 - Ver
 History:
 Version 1.0 - Author Jean-Philippe Bonnet
    First release
+Version 2.0 - Author Cameron Tetford
+    Changed stepmode control to be UART-based for TMC2209 drivers
 
 This librarie allow the control of a stepper motor controled with a A4988 Stepper motor controler. This libraie allow absolut positioning and can be used for horizontal movement.
 
@@ -34,27 +36,15 @@ along with StepperControl library.  If not, see <http://www.gnu.org/licenses/>.
 #include <Arduino.h>
 #endif
 
+#include <TMCStepper.h>
+
 #define SC_CLOCKWISE 0
 #define SC_COUNTER_CLOCKWISE 1
-
-// TMC2209 constants:
-#define SC_8TH_STEP 0
-#define SC_16TH_STEP 2
-#define SC_32TH_STEP 1
-#define SC_64TH_STEP 3
-
-#define SC_MAX_SPEED 1000000
-#define SC_MAX_SPEED_8TH_STEP 30000
-#define SC_MAX_SPEED_16TH_STEP 50000
-#define SC_MAX_SPEED_32TH_STEP 100000
-#define SC_MAX_SPEED_64TH_STEP 200000
 
 #define SC_MOVEMODE_PER_STEP 0
 #define SC_MOVEMODE_SMOOTH 1
 
 #define SC_DEFAULT_ACCEL 1000
-
-#define SC_DEFAULT_SPEED 1000
 
 class StepperControl
 {
@@ -64,14 +54,10 @@ class StepperControl
   // Constructors:
   StepperControl(int stepPin,
 			int directionPin,
-			int stepModePin1,
-			int stepModePin2,
-			int stepModePin3,
-			int enablePin,
-			int sleepPin,
-			int resetPin);
+			int enablePin);
 
   // Setters
+  void initDriver(HardwareSerial *serial, float rsense, byte driveraddress);
   void setTargetPosition(long position);
   void setCurrentPosition(long position);
   void setDirection(int direction);
@@ -101,6 +87,8 @@ class StepperControl
   void disableTemperatureCompensation();
 
  private:
+  TMC2209Stepper *driver;
+  uint8_t DRIVER_ADDRESS;
   int direction;
   int stepMode;
   int moveMode;
@@ -125,12 +113,7 @@ class StepperControl
 
   int stepPin;
   int directionPin;
-  int stepModePin1;
-  int stepModePin2;
-  int stepModePin3;
   int enablePin;
-  int sleepPin;
-  int resetPin;
 
   void moveMotor();
   void calculateSpeed();
