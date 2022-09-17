@@ -43,14 +43,18 @@ StepperControl::StepperControl(int stepPin, int directionPin, int enablePin)
   digitalWrite(stepPin, LOW);
   digitalWrite(enablePin, HIGH);
 
+  #if INVERT_DIRECTION == 0
   this->direction = SC_CLOCKWISE;
+  #elif INVERT_DIRECTION == 1
+  this->direction = SC_COUNTER_CLOCKWISE;
+  #endif
   this->inMove = false;
   this->startPosition = 0;
   this->currentPosition = 0;
   this->targetPosition = 0;
   this->moveMode = SC_MOVEMODE_PER_STEP;
   this->acceleration = SC_DEFAULT_ACCEL;
-  this->speed = Speed1;
+  this->speed = Speed5;
   this->lastMovementTimestamp = 0;
   this->accelTimestamp = 0;
   this->targetSpeedReached = false;
@@ -62,11 +66,21 @@ StepperControl::StepperControl(int stepPin, int directionPin, int enablePin)
   this->currentTemperature = 0;
 }
 
-void StepperControl::initDriver(HardwareSerial *serial, float rsense, byte driveraddress)
+#if BOARD == BEETLE_CM32U4
+void StepperControl::initDriver(int RX_PIN, int TX_PIN, float rsense, byte driveraddress, int rms_current)
+{
+  this->driver = new TMC2209Stepper(RX_PIN, TX_PIN, rsense, driveraddress);
+  this->driver->rms_current(rms_current);        // Set motor RMS current
+  this->driver->I_scale_analog(false);
+}
+#elif BOARD == BEETLE_ESP32C3
+void StepperControl::initDriver(HardwareSerial *serial, float rsense, byte driveraddress, int rms_current)
 {
   this->driver = new TMC2209Stepper(serial, rsense, driveraddress);
+  this->driver->rms_current(rms_current);        // Set motor RMS current
+  this->driver->I_scale_analog(false);
 }
-
+#endif
 //------------------------------------------------------------------------------------
 // Setters
 void StepperControl::setTargetPosition(long position)

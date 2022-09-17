@@ -57,7 +57,8 @@ class StepperControl
 			int enablePin);
 
   // Setters
-  void initDriver(HardwareSerial *serial, float rsense, byte driveraddress);
+  void initDriver(int RX_PIN, int TX_PIN, float rsense, byte driveraddress, int rms_current);
+  void initDriver(HardwareSerial *serial, float rsense, byte driveraddress, int rms_current);
   void setTargetPosition(long position);
   void setCurrentPosition(long position);
   void setDirection(int direction);
