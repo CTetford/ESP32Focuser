@@ -52,9 +52,10 @@ StepperControl::StepperControl(int stepPin, int directionPin, int enablePin)
   this->startPosition = 0;
   this->currentPosition = 0;
   this->targetPosition = 0;
-  this->moveMode = SC_MOVEMODE_PER_STEP;
+  this->moveMode = SC_MOVEMODE_SMOOTH;
+  this->stepMode = FULL_STEP;
   this->acceleration = SC_DEFAULT_ACCEL;
-  this->speed = Speed5;
+  this->speed = Speed3;
   this->lastMovementTimestamp = 0;
   this->accelTimestamp = 0;
   this->targetSpeedReached = false;
@@ -70,8 +71,14 @@ StepperControl::StepperControl(int stepPin, int directionPin, int enablePin)
 void StepperControl::initDriver(int RX_PIN, int TX_PIN, float rsense, byte driveraddress, int rms_current)
 {
   this->driver = new TMC2209Stepper(RX_PIN, TX_PIN, rsense, driveraddress);
+  this->driver->begin();
+  delay(1000);
   this->driver->rms_current(rms_current);        // Set motor RMS current
   this->driver->I_scale_analog(false);
+  this->driver->microsteps(stepMode);
+  this->driver->en_spreadCycle(false);   // Toggle spreadCycle on TMC2208/2209/2224
+  this->driver->pwm_autoscale(true);     // Needed for stealthChop
+  //Serial.println("driver initialized");
 }
 #elif BOARD == BEETLE_ESP32C3
 void StepperControl::initDriver(HardwareSerial *serial, float rsense, byte driveraddress, int rms_current)
@@ -79,6 +86,9 @@ void StepperControl::initDriver(HardwareSerial *serial, float rsense, byte drive
   this->driver = new TMC2209Stepper(serial, rsense, driveraddress);
   this->driver->rms_current(rms_current);        // Set motor RMS current
   this->driver->I_scale_analog(false);
+  this->driver->microsteps(stepMode);
+  this->driver->en_spreadCycle(false);   // Toggle spreadCycle on TMC2208/2209/2224
+  this->driver->pwm_autoscale(true);     // Needed for stealthChop
 }
 #endif
 //------------------------------------------------------------------------------------
@@ -115,7 +125,7 @@ void StepperControl::setSpeed(unsigned int speed)
   {
     this->targetSpeed = SC_MAX_SPEED_FULL_STEP;
   }
-  else if (this->stepMode == HALF_STEP && speed >= SC_MAX_SPEED_FULL_STEP)
+  else if (this->stepMode == HALF_STEP && speed >= SC_MAX_SPEED_HALF_STEP)
   {
     this->targetSpeed = SC_MAX_SPEED_HALF_STEP;
   }
@@ -285,11 +295,10 @@ void StepperControl::moveMotor()
         }
         this->currentPosition--;
       }
-      digitalWrite(this->enablePin, LOW);
-      delayMicroseconds(5);
       digitalWrite(this->stepPin, HIGH);
-      delayMicroseconds(5);
+      delayMicroseconds(1);
       digitalWrite(this->stepPin, LOW);
+      delayMicroseconds(1);
 
       if (this->speed >= this->targetSpeed)
       {
@@ -390,4 +399,23 @@ void StepperControl::enableTemperatureCompensation()
 void StepperControl::disableTemperatureCompensation()
 {
   this->temperatureCompensationIsEnabled = false;
+}
+
+bool StepperControl::connectToDriver()
+{
+    //Serial.println("[STEPPERS]: Testing UART Connection to driver...");
+    for (int i = 0; i < 3; i++)
+    {
+        if (this->driver->test_connection() == 0)
+        {
+            //Serial.println("[STEPPERS]: UART connection to driver successful.");
+            return true;
+        }
+        else
+        {
+            delay(500);
+        }
+    }
+    //Serial.println("[STEPPERS]: UART connection to driver failed.");
+    return false;
 }

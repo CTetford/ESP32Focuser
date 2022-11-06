@@ -44,8 +44,6 @@ along with StepperControl library.  If not, see <http://www.gnu.org/licenses/>.
 #define SC_MOVEMODE_PER_STEP 0
 #define SC_MOVEMODE_SMOOTH 1
 
-#define SC_DEFAULT_ACCEL 1000
-
 class StepperControl
 {
  public:
@@ -86,6 +84,7 @@ class StepperControl
   bool isTemperatureCompensationEnabled();
   void enableTemperatureCompensation();
   void disableTemperatureCompensation();
+  bool connectToDriver();
 
  private:
   TMC2209Stepper *driver;

@@ -4,29 +4,19 @@
 #include "StepperControl.h"
 //#include <ESP32Encoder.h>
 
-//#include <U8x8lib.h>
-//#include <U8g2lib.h>
-
 #include "../Configuration.hpp"
 
 //const int temperatureSensorPin = 3;
 
 unsigned long timestamp;
-unsigned long displayTimestamp;
 
 //LM335 TemperatureSensor(temperatureSensorPin);
 StepperControl Motor(stepPin, directionPin, enablePin);
 Moonlite SerialProtocol;
 // ESP32Encoder encoder;
 
-// Declaration of the display
-//U8G2_SSD1306_128X64_NONAME_1_HW_I2C Display(U8G2_R0);
-
 float temp = 0;
 long pos = 0;
-bool pageIsRefreshing = false;
-
-//hw_timer_t * timer = NULL;
 
 void processCommand()
 {
@@ -132,9 +122,9 @@ void processCommand()
     case ML_SF:
       // Set the stepping mode to full step
       Motor.setStepMode(FULL_STEP);
-      if (Motor.getSpeed() >= 6000)
+      if (Motor.getSpeed() >= SC_MAX_SPEED_FULL_STEP)
       {
-        Motor.setSpeed(6000);
+        Motor.setSpeed(SC_MAX_SPEED_FULL_STEP);
       }
       break;
     case ML_SH:
@@ -185,11 +175,8 @@ void setup()
 {
   SerialProtocol.init(9600);
   // Serial2.begin(115200, SERIAL_8N1, RXD2, TXD2);
-  // Serial2.println("Begin debugging");
-
-  //Display.begin();
-  //Display.setContrast(0);
-  //Display.setFont(u8g2_font_crox4hb_tr);
+  //delay(3000);
+  //Serial.println("Begin debugging");
 
   // Open serial port with TMC2209
   #if BOARD == BEETLE_CM32U4
@@ -198,14 +185,6 @@ void setup()
   Serial1.begin(115200, SERIAL_8N1, UART_TX, UART_RX);  
   Motor.initDriver(&Serial1, 0.11f, 0b00, RMS_CURRENT);    
   #endif
-
-  // Set the motor speed to a valid value for Moonlite
-  Motor.setSpeed(7000);
-  Motor.setStepMode(HALF_STEP);
-  Motor.setMoveMode(SC_MOVEMODE_SMOOTH);
-
-  timestamp = millis();
-  //displayTimestamp = millis();
 
   // SetupEncoder();
 }
@@ -233,9 +212,11 @@ void HandleHandController()
 
 void loop()
 {
+   /*
   if (!Motor.isInMove())
   {
-    //TemperatureSensor.Manage();
+   
+    TemperatureSensor.Manage();
     if (Motor.isTemperatureCompensationEnabled() && ((millis() - timestamp) > 30000))
     {
      // Motor.setCurrentTemperature(TemperatureSensor.getTemperature());
@@ -244,7 +225,7 @@ void loop()
       timestamp = millis();
     }
   }
-
+  */
 
   // HandleHandController();
 
@@ -255,19 +236,4 @@ void loop()
   {
     processCommand();
   }
-
-
-
-//  if ((millis() - displayTimestamp) >= 1000 && !Motor.isInMove())
-//  {
-//    Display.firstPage();
-//    temp = TemperatureSensor.getTemperature();
-//    pos = Motor.getCurrentPosition();
-//    do
-//    {
-//      Display.drawStr(0, 16, ((String("T: ") + String(temp, 1) + " C").c_str()));
-//      Display.drawStr(0, 55, (String("Pos: ") + pos).c_str());
-//    } while (Display.nextPage());
-//    displayTimestamp = millis();
-//  }
 }
