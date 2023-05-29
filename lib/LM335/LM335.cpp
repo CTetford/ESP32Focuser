@@ -29,12 +29,12 @@ along with LM335 library.  If not, see <http://www.gnu.org/licenses/>.
 
 LM335::LM335(int aquisitionPin)
 {
-  this->aquisitionPin = aquisitionPin;
-  this->integrationLoop = LM335_DEFAULT_INTEGRATION_LOOP;
-  this->integrationLoopNumber = 0;
-  this->temperature = -65535;
-  this->integratedTemperature = 0;
-  this->temperatureCompensationValue = 0;
+    this->aquisitionPin                = aquisitionPin;
+    this->integrationLoop              = LM335_DEFAULT_INTEGRATION_LOOP;
+    this->integrationLoopNumber        = 0;
+    this->temperature                  = -65535;
+    this->integratedTemperature        = 0;
+    this->temperatureCompensationValue = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -42,61 +42,60 @@ LM335::LM335(int aquisitionPin)
 
 void LM335::setNumberOfIntegration(unsigned long integrationLoop)
 {
-  this->integrationLoop = integrationLoop;
+    this->integrationLoop = integrationLoop;
 }
 
-// Set the offset of the temperature in C°
+// Set the offset of the temperature in Cï¿½
 void LM335::setCompensationValue(float compensationValue)
 {
-   this->temperatureCompensationValue = compensationValue;
+    this->temperatureCompensationValue = compensationValue;
 }
 
 //-----------------------------------------------------------------------------
 // Getters
 
-// Get the temperature in C°
+// Get the temperature in Cï¿½
 float LM335::getTemperature()
 {
-  return this->temperature;
+    return this->temperature;
 }
 
 unsigned long LM335::getNumberOfIntegrationLoop()
 {
-  return this->integrationLoop;
+    return this->integrationLoop;
 }
 
 float LM335::getCompensationValue()
 {
-   return this->temperatureCompensationValue;
+    return this->temperatureCompensationValue;
 }
 
 //-----------------------------------------------------------------------------
 // Public Members
 void LM335::integrateTemperature()
 {
-  this->integratedTemperature += this->readTemperature();
-  this->integrationLoopNumber ++;
-  if (this->integrationLoopNumber >= this->integrationLoop)
+    this->integratedTemperature += this->readTemperature();
+    this->integrationLoopNumber++;
+    if (this->integrationLoopNumber >= this->integrationLoop)
     {
-      temperature = (this->integratedTemperature / this->integrationLoop)
-			+ this->temperatureCompensationValue;
-      this->integratedTemperature = 0;
-      this->integrationLoopNumber = 0;
+        temperature                 = (this->integratedTemperature / this->integrationLoop) + this->temperatureCompensationValue;
+        this->integratedTemperature = 0;
+        this->integrationLoopNumber = 0;
     }
 }
 
 void LM335::Manage()
 {
-  if(temperature<-65000)
-  {
-     this->temperature = this->readTemperature();
-  }
-  this->integrateTemperature();
+    if (temperature < -65000)
+    {
+        this->temperature = this->readTemperature();
+    }
+    this->integrateTemperature();
 }
 
 //-----------------------------------------------------------------------------
 // Private
 float LM335::readTemperature()
 {
-  return (500.0*analogRead(this->aquisitionPin)/1024.0) - 273.15;
+    return (500.0 * analogRead(this->aquisitionPin) / 1024.0) - 273.15;
 }

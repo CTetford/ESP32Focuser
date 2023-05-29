@@ -23,41 +23,41 @@ along with LM335 library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #if ARDUINO < 100
-#include <Wprogram.h>
+    #include <Wprogram.h>
 #else
-#include <Arduino.h>
+    #include <Arduino.h>
 #endif
 
 #define LM335_DEFAULT_INTEGRATION_LOOP 5000
 
 class LM335
 {
- public:
-  // Constructors:
-  LM335(int aquisistionPin);
+  public:
+    // Constructors:
+    LM335(int aquisistionPin);
 
-  // Setters:
-  void setNumberOfIntegration(unsigned long integrationLoop);
-  void setCompensationValue(float compensationValue);
+    // Setters:
+    void setNumberOfIntegration(unsigned long integrationLoop);
+    void setCompensationValue(float compensationValue);
 
-  // Getter:
-  float getTemperature();
-  unsigned long getNumberOfIntegrationLoop();
-  float getCompensationValue();
+    // Getter:
+    float getTemperature();
+    unsigned long getNumberOfIntegrationLoop();
+    float getCompensationValue();
 
-  // Other Public Members
-  void Manage();
+    // Other Public Members
+    void Manage();
 
- private:
-  float readTemperature();
+  private:
+    float readTemperature();
 
-  float temperature; // Temperature in C°
-  float integratedTemperature;
+    float temperature;  // Temperature in Cï¿½
+    float integratedTemperature;
 
-  unsigned long integrationLoop;
-  unsigned long integrationLoopNumber;
-  int aquisitionPin;
-  float temperatureCompensationValue;
+    unsigned long integrationLoop;
+    unsigned long integrationLoopNumber;
+    int aquisitionPin;
+    float temperatureCompensationValue;
 
-  void integrateTemperature();
+    void integrateTemperature();
 };
